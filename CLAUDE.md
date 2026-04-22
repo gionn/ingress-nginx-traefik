@@ -33,6 +33,14 @@
   - `Toc` and other Slidev components
   - slide notes (`<!-- ... -->` at end of slide)
   - embedded external snippets (`<<< @/...`)
+- **Every per-slide frontmatter block MUST be fully enclosed between `---` delimiters.** A bare key like `layout: section` on its own line (without a closing `---`) is invalid and will cause a YAML parse error. Always use the form:
+  ```
+  ---
+  layout: section
+  ---
+  ```
+  This applies to all frontmatter keys: `layout`, `transition`, `layoutClass`, etc.
+- **`level: 1` is the default** — never emit it. Only use `level: 2` (or higher) when explicitly needed for a sub-slide. If `level: 1` would be the only key in a slide's frontmatter, omit the frontmatter block entirely and go straight to slide content.
 
 ## Consistency rules
 
