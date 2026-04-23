@@ -16,6 +16,7 @@ transition: slide-left
 comark: true
 duration: 40min
 canvasWidth: 720
+hideInToc: true
 ---
 # From ingress-nginx to Traefik
 
@@ -26,6 +27,7 @@ Hyland
 ---
 layout: image-right
 image: https://avatars.githubusercontent.com/u/71768
+hideInToc: true
 ---
 
 # About me
@@ -35,18 +37,7 @@ image: https://avatars.githubusercontent.com/u/71768
 * More about me on [gionn.net](https://gionn.net)
 
 ---
-layout: image-right
-image: https://www.svgrepo.com/show/353382/alfresco.svg
-backgroundSize: contain
----
-
-# Alfresco
-
-Open Source document, process and governance management suite.
-
-Alfresco is designed to help organizations efficiently manage their content and
-improve productivity.
-
+hideInToc: true
 ---
 
 # Ops readiness team
@@ -60,6 +51,8 @@ environments. We focus on:
 * Performance testing and monitoring 🆕
 
 ---
+hideInToc: true
+---
 
 # Open source projects we maintain
 
@@ -68,10 +61,13 @@ environments. We focus on:
     chart for the whole stack and compose files for local development
   * [alfresco-helm-charts](https://github.com/Alfresco/alfresco-helm-charts):
     component-level charts for more flexibility
-  * [alfresco-dockerfiles-bakery](https://github.com/Alfresco/alfresco-dockerfiles-bakery)
+  * [alfresco-dockerfiles-bakery](https://github.com/Alfresco/alfresco-dockerfiles-bakery):
+    build your own Docker images with customizations
 * Classic deployments:
   * [alfresco-ansible](https://github.com/Alfresco/alfresco-ansible-deployment)
 
+---
+hideInToc: true
 ---
 
 # Table of contents
@@ -80,9 +76,11 @@ environments. We focus on:
 
 ---
 layout: section
+hideInToc: true
 ---
 
 # Part 1
+
 ## The Problem: ingress-nginx deprecation
 
 ---
@@ -124,6 +122,8 @@ After March 2026:
 > — [kubernetes.io/blog, November 2025](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)
 
 ---
+hideInToc: true
+---
 
 # Why it matters for Alfresco
 
@@ -142,9 +142,11 @@ We need a modern, maintained replacement — and we chose **Traefik**.
 
 ---
 layout: section
+hideInToc: true
 ---
 
 # Part 2
+
 ## Traefik on Kubernetes
 
 ---
@@ -180,58 +182,44 @@ helm upgrade --install traefik traefik/traefik \
 `Ingress` resources with `ingressClassName: nginx` — **no changes to existing
 Ingress objects needed**.
 
-```sh
-kubectl wait --namespace traefik \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/name=traefik \
-  --timeout=90s
-```
-
 ---
 
-# Backwards Compatibility
+# Charts Backward Compatibility
 
-Our charts keep `ingressClassName: nginx` as the default — **existing
-deployments continue to work** after switching the controller.
+Our charts keep `global.ingressClassName: nginx` as the default for now —
+**existing deployments continue to work** after replacing the controller.
 
-Fine-grained control via chart values:
+Fine-grained control via component chart values:
 
-| Value | Effect |
-|---|---|
-| `.ingress.className` | override the IngressClass name |
-| `.ingress.annotations` | pass controller-specific annotations |
+| Value                     | Effect                                  |
+| ------------------------- | --------------------------------------- |
+| `.ingress.className`      | override the IngressClass name          |
+| `.ingress.annotations`    | pass controller-specific annotations    |
 | `.ingress.enabled: false` | disable bundled Ingress; bring your own |
 
-<br>
-
-Setting `ingress.enabled: false` on each sub-chart lets you manage Ingress
-resources yourself — useful for GitOps or custom setups.
+<!-- Setting `ingress.enabled: false` on each component chart lets you manage Ingress
+resources yourself — useful for GitOps or custom setups. -->
 
 ---
-layout: two-cols
----
 
-# Migrating an existing cluster
+## Migrating an existing cluster
 
-Zero-downtime strategy from the [official Traefik guide](https://doc.traefik.io/traefik/migrate/nginx-to-traefik/)
-_(requires Traefik ≥ v3.6.2)_
+Zero-downtime strategy from the [official Traefik guide](https://doc.traefik.io/traefik/migrate/nginx-to-traefik/):
 
-::left::
-
-**Steps**
+### Steps (diagram on next slide)
 
 1. Install Traefik **alongside** NGINX (both serve traffic)
 2. Verify Traefik handles your Ingresses via its own LoadBalancer IP
 3. Add Traefik IP to DNS — progressive traffic shift
 4. Remove NGINX IP from DNS, wait for propagation
 5. **Preserve the `nginx` IngressClass** before uninstalling
-6. Delete NGINX admission webhook, uninstall NGINX
+6. Uninstall NGINX - delete admission webhook if installed without Helm
 
-::right::
+---
 
-**Key insight**
+### Upgrade strategy
 
-```
+```text
 Before:
   DNS → NGINX LB → Services
 
@@ -243,26 +231,38 @@ After:
   DNS → Traefik LB → Services
 ```
 
-Existing `Ingress` resources with `ingressClassName: nginx`
-**keep working unchanged** — Traefik translates nginx annotations automatically.
+Traefik translates nginx annotations automatically.
 
 ---
 layout: section
+hideInToc: true
 ---
 
 # Part 3
 ## KinD Improvements
 
 ---
-layout: two-cols
+layout: image-right
+image: https://kind.sigs.k8s.io/logo/logo.png
+backgroundSize: 15em
+---
+
+# What is KinD?
+
+[KinD](https://kind.sigs.k8s.io/) is a tool for running Kubernetes clusters
+locally using just a Docker runtime.
+
+It's widely used for local development and testing on the CI.
+
+Successor of Minikube or any other native local Kubernetes solution (e.g.
+Rancher Desktop, Docker Desktop Kubernetes).
+
 ---
 
 # The old KinD way
 
 Running ingress-nginx on KinD required a custom cluster with **hardcoded host
-port mappings**.
-
-::left::
+port mappings** and a patched Deployment (using `hostNetwork: true`).
 
 ```shell
 cat <<EOF | kind create cluster --config=-
@@ -284,14 +284,14 @@ nodes:
 EOF
 ```
 
-::right::
+---
 
-Problems:
+# Problems with the old KinD setup
 
 * Ports 80 and 443 must be **free on the host**
-* Requires a **special ingress-nginx build** for KinD
+* Requires a **patched ingress-nginx manifest** for KinD
 * Cluster config is tightly coupled to the ingress controller
-* Not representative of a real Kubernetes environment
+* Not really representative of a real Kubernetes environment
 
 ---
 
@@ -358,11 +358,11 @@ proxy in our Docker Compose bundles** for both Community and Enterprise.
 This is part of a **broader modernization effort** across all deployment
 environments:
 
-| Environment | Before | After |
-|---|---|---|
-| Docker Compose | nginx (custom image) | **Traefik** ✅ |
-| Kubernetes (Helm) | ingress-nginx | **Traefik** ✅ |
-| KinD local dev | ingress-nginx (special build) | **Traefik** ✅ |
+| Environment       | Before                        | After          |
+| ----------------- | ----------------------------- | -------------- |
+| Docker Compose    | nginx (custom image)          | **Traefik** ✅ |
+| Kubernetes (Helm) | ingress-nginx                 | **Traefik** ✅ |
+| KinD local dev    | ingress-nginx (special build) | **Traefik** ✅ |
 
 <br>
 
