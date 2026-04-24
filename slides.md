@@ -72,17 +72,20 @@ hideInToc: true
 
 # Table of contents
 
-<Toc minDepth="1" maxDepth="1" />
+<Transform :scale="0.9">
+<Toc minDepth="1" maxDepth="1"/>
+</Transform>
 
 ---
 layout: section
-hideInToc: true
 ---
 
-# Part 1
+# The Problem: ingress-nginx deprecation
 
-## The Problem: ingress-nginx deprecation
+## Part 1
 
+---
+hideInToc: true
 ---
 
 # What is an Ingress Controller?
@@ -92,7 +95,7 @@ access to services inside a cluster.
 
 It watches `Ingress` resources and programs a reverse proxy accordingly.
 
-```
+```text
 Internet → LoadBalancer → Ingress Controller → Services → Pods
 ```
 
@@ -102,6 +105,8 @@ Internet → LoadBalancer → Ingress Controller → Services → Pods
 
 > Without an Ingress Controller, `Ingress` resources have no effect.
 
+---
+hideInToc: true
 ---
 
 # ingress-nginx is being retired
@@ -120,6 +125,22 @@ After March 2026:
 > "Users are encouraged to migrate to a maintained ingress controller."
 >
 > — [kubernetes.io/blog, November 2025](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)
+>
+
+---
+hideInToc: true
+---
+
+# Ingress is not going away
+
+The `Ingress` API is still part of Kubernetes and will continue to be supported.
+
+The `Gateway` API is also emerging as a more powerful and flexible alternative,
+but adoption is still in early stages.
+
+The key point is that **the deprecation only affects the ingress-nginx
+controller** — not the Ingress API itself - a lot of people are missing this
+nuance.
 
 ---
 hideInToc: true
@@ -142,13 +163,14 @@ We need a modern, maintained replacement — and we chose **Traefik**.
 
 ---
 layout: section
-hideInToc: true
 ---
 
-# Part 2
+# Traefik on Kubernetes
 
-## Traefik on Kubernetes
+## Part 2
 
+---
+hideInToc: true
 ---
 
 # Why Traefik?
@@ -163,6 +185,8 @@ Ingress Controller actively maintained by Traefik Labs.
 Our charts use **standard `Ingress` resources** for broad compatibility — no
 CRD migration required - except for a few nginx-specific annotations.
 
+---
+hideInToc: true
 ---
 
 # Installing Traefik
@@ -183,6 +207,8 @@ helm upgrade --install traefik traefik/traefik \
 Ingress objects needed**.
 
 ---
+hideInToc: true
+---
 
 # Charts Backward Compatibility
 
@@ -201,6 +227,8 @@ Fine-grained control via component chart values:
 resources yourself — useful for GitOps or custom setups. -->
 
 ---
+hideInToc: true
+---
 
 ## Migrating an existing cluster
 
@@ -216,10 +244,12 @@ Zero-downtime strategy from the [official Traefik guide](https://doc.traefik.io/
 6. Uninstall NGINX - delete admission webhook if installed without Helm
 
 ---
+hideInToc: true
+---
 
 ### Upgrade strategy
 
-```text
+```text {1-2|4-6|8-9|all}
 Before:
   DNS → NGINX LB → Services
 
@@ -235,16 +265,17 @@ Traefik translates nginx annotations automatically.
 
 ---
 layout: section
-hideInToc: true
 ---
 
-# Part 3
-## KinD Improvements
+# KinD Improvements
+
+## Part 3
 
 ---
 layout: image-right
 image: https://kind.sigs.k8s.io/logo/logo.png
 backgroundSize: 15em
+hideInToc: true
 ---
 
 # What is KinD?
@@ -258,13 +289,15 @@ Successor of Minikube or any other native local Kubernetes solution (e.g.
 Rancher Desktop, Docker Desktop Kubernetes).
 
 ---
+hideInToc: true
+---
 
-# The old KinD way
+# The old ingress-nginx on KinD
 
-Running ingress-nginx on KinD required a custom cluster with **hardcoded host
-port mappings** and a patched Deployment (using `hostNetwork: true`).
+Running ingress-nginx on KinD required a custom cluster configuration with:
 
-```shell
+<Transform :scale="0.6">
+```shell {all|12-16}
 cat <<EOF | kind create cluster --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -283,7 +316,10 @@ nodes:
     hostPort: 443
 EOF
 ```
+</Transform>
 
+---
+hideInToc: true
 ---
 
 # Problems with the old KinD setup
@@ -293,6 +329,8 @@ EOF
 * Cluster config is tightly coupled to the ingress controller
 * Not really representative of a real Kubernetes environment
 
+---
+hideInToc: true
 ---
 
 # cloud-provider-kind
@@ -310,24 +348,31 @@ brew install cloud-provider-kind
 sudo cloud-provider-kind
 ```
 
+---
+hideInToc: true
+---
+
+# Benefits of cloud-provider-kind
+
 * No special cluster config required
 * Works with any standard Ingress Controller
 * On Podman/Docker Desktop (macOS/Windows): automatically enables
   `--enable-lb-port-mapping` for `localhost` access
-* Testing experience is **much closer to a real cluster**
+* Ingress testing experience is **much closer to a real cluster**
 
+---
+hideInToc: true
 ---
 
 # New KinD setup
 
 Four simple steps — no custom cluster config needed:
 
-```sh {1|2-3|4-6|7-9}
+```sh {1-2|4-5|7-10|12-13|all}
 # 1. Create a plain KinD cluster
 kind create cluster
 
 # 2. Install and run cloud-provider-kind (keep running in background)
-brew install cloud-provider-kind
 sudo cloud-provider-kind
 
 # 3. Install Traefik (standard Helm install)
@@ -339,105 +384,132 @@ helm upgrade --install traefik traefik/traefik \
 kubectl get svc -n traefik
 ```
 
-Traefik's LoadBalancer gets a real IP — browse it directly or set `/etc/hosts`.
+---
+layout: section
+---
+
+# Live Demo
+
+## Part 4
 
 ---
 layout: section
 ---
 
-# Part 4
-## Traefik on Docker Compose
+# Traefik on Docker Compose
+
+## Part 5
 
 ---
-
-# Traefik arrived in Compose first
-
-While the Helm migration happened in March 2026, **Traefik was already the
-proxy in our Docker Compose bundles** for both Community and Enterprise.
-
-This is part of a **broader modernization effort** across all deployment
-environments:
-
-| Environment       | Before                        | After          |
-| ----------------- | ----------------------------- | -------------- |
-| Docker Compose    | nginx (custom image)          | **Traefik** ✅ |
-| Kubernetes (Helm) | ingress-nginx                 | **Traefik** ✅ |
-| KinD local dev    | ingress-nginx (special build) | **Traefik** ✅ |
-
-<br>
-
-Consistent reverse proxy across all environments → simpler mental model,
-unified configuration patterns.
-
+layout: image-right
+image: /images/docker-compose.png
+backgroundSize: 15em
+hideInToc: true
 ---
 
-# How Traefik works in Compose
+# Traefik in Compose
 
-No separate config file. Routing is driven by **Docker labels** on each service.
+While the Helm migration happened in March 2026, **Traefik was already the proxy
+in our Docker Compose bundles** for both Community and Enterprise since late
+2024.
+
+A single reverse proxy across all environments → simpler mental model, unified
+configuration patterns.
+
+---
+hideInToc: true
+---
+
+# How Traefik works with Compose
+
+* No separate config file.
+* Routing is driven by **Docker labels** on each service.
+  * Labels are **evaluated live** by Traefik - no need to restart the proxy,
+    just the service being routed.
+  * Configure every aspect of routing, middleware, limit, TLS, etc. via labels
 
 ```yaml
 services:
   alfresco:
-    image: quay.io/alfresco/alfresco-content-repository:latest
+    image: quay.io/alfresco/alfresco-content-repository:26.1.0
     labels:
-      - "traefik.http.routers.alfresco.rule=PathPrefix(`/alfresco`)"
+      - "traefik.http.routers.alfresco.rule=PathPrefix(`/`)"
+```
+
+---
+hideInToc: true
+---
+
+# Compose with Traefik: example
+
+```yaml {1-3|1-8|10-15|all}
+services:
+  alfresco:
+    image: quay.io/alfresco/alfresco-content-repository:26.1.0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.alfresco.rule=PathPrefix(`/`)"
       - "traefik.http.middlewares.limit.buffering.maxRequestBodyBytes=5368709120"
-      - "traefik.http.routers.alfresco.middlewares=limit"
+      - "traefik.http.routers.alfresco.middlewares=limit@docker"
 
   proxy:
     image: traefik:v3
     command:
       - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.address=:8080"
       - "--entrypoints.web.transport.respondingTimeouts.readTimeout=1200"
 ```
 
-* Labels are **evaluated live** — no restart needed for routing changes
-* Upload limits and timeouts configured via labels on each service
-
+---
+hideInToc: true
 ---
 
 # Compose `extends` feature
 
-We now leverage Docker Compose's
+We now leverage Docker Compose
 [extends](https://docs.docker.com/compose/how-tos/multiple-compose-files/extends/)
 feature to improve maintainability.
 
-```
+```text
 docker-compose/
-├── commons/          ← shared base definitions (Traefik, networks, …)
-├── compose.yaml      ← Enterprise (extends commons)
-├── community-compose.yaml
-├── 23.N-compose.yaml
-└── solr6-overrides.yaml
+├── commons/               ← shared base definitions (Traefik labels, …)
+├── compose.yaml           ← Enterprise which extends commons
+├── community-compose.yaml ← Community which extends commons
+├── 23.N-compose.yaml.     ← older supported versions
+└── solr6-overrides.yaml   ← optional overrides for specific components
 ```
 
-**Important**: compose files must be invoked **from within** the
-`docker-compose/` directory:
-
-```sh
-cd docker-compose
-docker compose up -d
-
-# NOT from the repo root — relative extends paths will break
-```
-
-Customizations should extend the files in `commons/` rather than copy-pasting
+Customizations should be extensions in `commons` rather than copy-pasting
 service definitions.
 
 ---
 layout: section
 ---
 
-# Part 5
-## ActiveMQ Authentication (ACS 26+)
+# ActiveMQ Authentication (ACS 26+)
 
+## Part 6
+
+---
+hideInToc: true
 ---
 
 # ActiveMQ auth enabled by default
 
 Starting with **ACS 26**, the `alfresco-activemq:6.2.x` image enables
 authentication by default. This applies to **both Compose and Helm**.
+
+Affected services: `alfresco-repository`, `transform-router`,
+`transform-core-aio`, `alfresco-sync-service`, `search-enterprise`
+
+Older `alfresco-activemq` images (pre-6.2.x) remain unauthenticated by default
+for backwards compatibility.
+
+---
+hideInToc: true
+---
+
+# Configuring ActiveMQ credentials
 
 **On the broker** (`alfresco-activemq` service / chart):
 
@@ -446,52 +518,60 @@ ACTIVEMQ_ADMIN_LOGIN: admin
 ACTIVEMQ_ADMIN_PASSWORD: <your-password>
 ```
 
-**On every service that connects to ActiveMQ**:
+**On every service that connects to ActiveMQ** (or similar properties depending
+on the component):
 
 ```yaml
 SPRING_ACTIVEMQ_USER: admin
 SPRING_ACTIVEMQ_PASSWORD: <your-password>
 ```
 
-Affected services: `alfresco-repository`, `transform-router`,
-`transform-core-aio`, `alfresco-sync-service`, `search-enterprise`
-
-<br>
-
-> Older `alfresco-activemq` images (pre-6.2.x) remain unauthenticated by
-> default for backwards compatibility.
-
 ---
 layout: section
 ---
 
-# Part 6
-## Summary
+# Summary
+
+## Part 7
 
 ---
+hideInToc: true
+---
 
-# What do you need to do?
+## What do you need to do?
 
-<br>
-
-**Kubernetes / Helm**
+### Kubernetes / Helm
 
 * Uninstall ingress-nginx, install Traefik with `providers.kubernetesIngressNginx.enabled=true`
 * No changes to existing `Ingress` resources needed
 * For existing clusters: follow the zero-downtime migration guide
 
-**KinD (local dev)**
+---
+hideInToc: true
+---
+
+## What do you need to do?
+
+### KinD
 
 * Drop the custom cluster config
 * Use `kind create cluster` + `cloud-provider-kind`
 * Install Traefik normally
 
-**Docker Compose**
+---
+hideInToc: true
+---
+
+## What do you need to do?
+
+### Docker Compose
 
 * Already on Traefik — nothing to do on the proxy side
 * If on ACS 26+: add ActiveMQ credentials to all affected services
 * Run compose files from within the `docker-compose/` directory
 
+---
+hideInToc: true
 ---
 
 # The bigger picture
@@ -500,24 +580,19 @@ This is not just a swap of one reverse proxy for another.
 
 It's a **consistent modernization** across every Alfresco deployment surface:
 
-```
-Docker Compose  ──┐
-                  ├── Traefik everywhere
-Kubernetes/Helm ──┤
-                  │
-KinD (local) ─────┘
-```
+| Environment       | Before                        | After          |
+| ----------------- | ----------------------------- | -------------- |
+| Docker Compose    | nginx (custom image)          | **Traefik** ✅ |
+| Kubernetes (Helm) | ingress-nginx                 | **Traefik** ✅ |
+| KinD local dev    | ingress-nginx (special build) | **Traefik** ✅ |
 
 * One mental model for routing configuration
 * One set of documentation and debugging skills
 * Actively maintained, cloud-native tooling
-* Foundation for future improvements: Gateway API, Traefik middlewares, mTLS
+* Foundation for future improvements: Gateway API, advanced traffic management
 
-<br>
-
-> The migration from ingress-nginx to Traefik is complete for new deployments.
-> Existing clusters can migrate with zero downtime.
-
+---
+hideInToc: true
 ---
 
 # Questions?
