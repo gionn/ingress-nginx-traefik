@@ -1,6 +1,6 @@
 ---
 theme: default
-background: https://images.unsplash.com/photo-1621537108694-3a8259512251?q=80&w=1365&auto=format&fit=crop
+background: https://images.unsplash.com/photo-1504275107627-0c2ba7a43dba?q=80&w=1365&auto=format&fit=crop
 title: From ingress-nginx to Traefik
 info: |
   Alfresco is moving from ingress-nginx to Traefik for Helm deployments, bringing
@@ -63,8 +63,9 @@ hideInToc: true
     component-level charts for more flexibility
   * [alfresco-dockerfiles-bakery](https://github.com/Alfresco/alfresco-dockerfiles-bakery):
     build your own Docker images with customizations
-* Classic deployments:
-  * [alfresco-ansible](https://github.com/Alfresco/alfresco-ansible-deployment)
+* Classic deployment:
+  * [alfresco-ansible](https://github.com/Alfresco/alfresco-ansible-deployment):
+    Ansible playbooks for on-premises/VM deployments
 
 ---
 hideInToc: true
@@ -93,7 +94,7 @@ hideInToc: true
 An **Ingress Controller** is a Kubernetes component that manages external HTTP/HTTPS
 access to services inside a cluster.
 
-It watches `Ingress` resources and programs a reverse proxy accordingly.
+It watches for `Ingress` resources and sets up a reverse proxy accordingly.
 
 ```text
 Internet → LoadBalancer → Ingress Controller → Services → Pods
@@ -103,13 +104,13 @@ Internet → LoadBalancer → Ingress Controller → Services → Pods
 * Handles TLS termination
 * Can enforce rate limits, auth, redirects, …
 
-> Without an Ingress Controller, `Ingress` resources have no effect.
+> Without an Ingress Controller installed, `Ingress` resources have no effect.
 
 ---
 hideInToc: true
 ---
 
-# ingress-nginx is being retired
+# ingress-nginx is retired
 
 The Kubernetes project officially announced the **retirement of ingress-nginx**
 in November 2025.
@@ -178,7 +179,8 @@ hideInToc: true
 [Traefik](https://traefik.io/) is a modern, cloud-native reverse proxy and
 Ingress Controller actively maintained by Traefik Labs.
 
-* Supports standard Kubernetes `Ingress` resources **and** its own CRDs (`IngressRoute`)
+* Supports standard Kubernetes `Ingress` resources (and its own CRD
+  `IngressRoute`)
 * Built-in dashboard, metrics, tracing, access logs
 * Actively developed, well-documented, widely adopted
 
@@ -202,29 +204,27 @@ helm upgrade --install traefik traefik/traefik \
 
 <br>
 
-`providers.kubernetesIngressNginx.enabled=true` tells Traefik to watch
-`Ingress` resources with `ingressClassName: nginx` — **no changes to existing
-Ingress objects needed**.
+* Enabling `kubernetesIngressNginx` provider tells Traefik to watch `Ingress`
+  resources with `ingressClassName: nginx` and provides compatibility with
+  existing ingress-nginx annotations.
 
 ---
 hideInToc: true
 ---
 
-# Charts Backward Compatibility
+## Charts Backward Compatibility
 
-Our charts keep `global.ingressClassName: nginx` as the default for now —
-**existing deployments continue to work** after replacing the controller.
+Our latest charts provides `global.ingressClassName: nginx` as default —
+**existing deployments continue to work** with the current `Ingress` resources.
 
-Fine-grained control via component chart values:
+The `nginx` `IngressClass` has to be present in the cluster, otherwise Traefik
+won't pick up any `Ingress` resources.
 
-| Value                     | Effect                                  |
-| ------------------------- | --------------------------------------- |
-| `.ingress.className`      | override the IngressClass name          |
-| `.ingress.annotations`    | pass controller-specific annotations    |
-| `.ingress.enabled: false` | disable bundled Ingress; bring your own |
+Optional fine-grained control via component chart values:
 
-<!-- Setting `ingress.enabled: false` on each component chart lets you manage Ingress
-resources yourself — useful for GitOps or custom setups. -->
+* `.ingress.className`: override the IngressClass name
+* `.ingress.annotations`: add more controller-specific annotations
+* `.ingress.enabled: false`: disable bundled Ingress to bring your own
 
 ---
 hideInToc: true
@@ -237,31 +237,34 @@ Zero-downtime strategy from the [official Traefik guide](https://doc.traefik.io/
 ### Steps (diagram on next slide)
 
 1. Install Traefik **alongside** NGINX (both serve traffic)
-2. Verify Traefik handles your Ingresses via its own LoadBalancer IP
+2. Verify Traefik handles your Ingresses via its own LoadBalancer IP (e.g. edit
+   your `/etc/hosts` to point to Traefik's IP)
 3. Add Traefik IP to DNS — progressive traffic shift
 4. Remove NGINX IP from DNS, wait for propagation
-5. **Preserve the `nginx` IngressClass** before uninstalling
-6. Uninstall NGINX - delete admission webhook if installed without Helm
+5. Uninstall NGINX - delete admission webhook if installed without Helm
+6. Ensure `nginx` `IngressClass` is still present
 
 ---
 hideInToc: true
 ---
 
-### Upgrade strategy
+## Upgrade strategy
 
-```text {1-2|4-6|8-9|all}
+```text {1-2|4-6|8-10|12-13|all}
 Before:
   DNS → NGINX LB → Services
 
-During:
-  DNS → NGINX LB  → Services
+After Traefik installed:
+  DNS → NGINX LB   → Services
       → Traefik LB → Services
 
-After:
+After DNS shift:
+  DNS → Traefik LB → Services
+        NGINX LB   → Services (draining)
+
+After NGINX uninstall:
   DNS → Traefik LB → Services
 ```
-
-Traefik translates nginx annotations automatically.
 
 ---
 layout: section
@@ -294,7 +297,8 @@ hideInToc: true
 
 # The old ingress-nginx on KinD
 
-Running ingress-nginx on KinD required a custom cluster configuration with:
+Running ingress-nginx on KinD required a custom cluster configuration exposing
+host http/s ports:
 
 <Transform :scale="0.6">
 ```shell {all|12-16}
@@ -322,7 +326,7 @@ EOF
 hideInToc: true
 ---
 
-# Problems with the old KinD setup
+# Problems with the old approach
 
 * Ports 80 and 443 must be **free on the host**
 * Requires a **patched ingress-nginx manifest** for KinD
@@ -354,7 +358,7 @@ hideInToc: true
 
 # Benefits of cloud-provider-kind
 
-* No special cluster config required
+* No special KinD cluster config required
 * Works with any standard Ingress Controller
 * On Podman/Docker Desktop (macOS/Windows): automatically enables
   `--enable-lb-port-mapping` for `localhost` access
@@ -579,12 +583,6 @@ hideInToc: true
 This is not just a swap of one reverse proxy for another.
 
 It's a **consistent modernization** across every Alfresco deployment surface:
-
-| Environment       | Before                        | After          |
-| ----------------- | ----------------------------- | -------------- |
-| Docker Compose    | nginx (custom image)          | **Traefik** ✅ |
-| Kubernetes (Helm) | ingress-nginx                 | **Traefik** ✅ |
-| KinD local dev    | ingress-nginx (special build) | **Traefik** ✅ |
 
 * One mental model for routing configuration
 * One set of documentation and debugging skills
