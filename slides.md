@@ -183,6 +183,7 @@ Ingress Controller actively maintained by Traefik Labs.
   `IngressRoute`)
 * Built-in dashboard, metrics, tracing, access logs
 * Actively developed, well-documented, widely adopted
+* Provides a compatibility mode for ingress-nginx annotations
 
 Our charts use **standard `Ingress` resources** for broad compatibility — no
 CRD migration required - except for a few nginx-specific annotations.
@@ -217,14 +218,30 @@ hideInToc: true
 Our latest charts provides `global.ingressClassName: nginx` as default —
 **existing deployments continue to work** with the current `Ingress` resources.
 
-The `nginx` `IngressClass` has to be present in the cluster, otherwise Traefik
-won't pick up any `Ingress` resources.
-
 Optional fine-grained control via component chart values:
 
 * `.ingress.className`: override the IngressClass name
 * `.ingress.annotations`: add more controller-specific annotations
 * `.ingress.enabled: false`: disable bundled Ingress to bring your own
+
+---
+hideInToc: true
+---
+
+## The nginx ingressClass must still be present
+
+It's critical to keep the `nginx` `IngressClass` resource in the cluster, even
+after uninstalling ingress-nginx, otherwise Traefik won't pick up any `Ingress`
+resources.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+spec:
+  controller: k8s.io/ingress-nginx
+```
 
 ---
 hideInToc: true
