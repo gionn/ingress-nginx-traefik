@@ -3,7 +3,7 @@ theme: default
 background: https://images.unsplash.com/photo-1504275107627-0c2ba7a43dba?q=80&w=1365&auto=format&fit=crop
 title: From ingress-nginx to Traefik
 info: |
-  Alfresco is moving from ingress-nginx to Traefik for Helm deployments, bringing
+  Alfresco has moved from ingress-nginx to Traefik for Helm deployments, bringing
   a more modern and maintainable approach to reverse proxying in acs-deployment.
   This presentation gives an overview of the change, the new Traefik guidance for
   Kubernetes, and the compatibility choices that still matter during the
@@ -90,7 +90,7 @@ layout: section
 hideInToc: true
 ---
 
-# What is an Ingress Controller?
+## What is an Ingress Controller?
 
 An **Ingress Controller** is a Kubernetes component that manages external HTTP/HTTPS
 access to services inside a cluster.
@@ -111,7 +111,7 @@ Internet → LoadBalancer → Ingress Controller → Services → Pods
 hideInToc: true
 ---
 
-# ingress-nginx has been retired
+## ingress-nginx has been retired
 
 The Kubernetes project officially announced the **retirement of ingress-nginx**
 in November 2025.
@@ -133,7 +133,7 @@ After March 2026:
 hideInToc: true
 ---
 
-# Ingress is not going away
+## Ingress is not going away
 
 The `Ingress` API is still part of Kubernetes and will continue to be supported.
 
@@ -148,7 +148,7 @@ nuance.
 hideInToc: true
 ---
 
-# Why it matters for Alfresco
+## Why it matters for Alfresco
 
 `acs-deployment` has used **ingress-nginx as the default** Ingress Controller
 for Helm deployments since day one.
@@ -175,7 +175,7 @@ layout: section
 hideInToc: true
 ---
 
-# Why Traefik?
+## Why Traefik?
 
 [Traefik](https://traefik.io/) is a modern, cloud-native reverse proxy and
 Ingress Controller actively maintained by Traefik Labs.
@@ -186,14 +186,14 @@ Ingress Controller actively maintained by Traefik Labs.
 * Actively developed, well-documented, widely adopted
 * Provides a compatibility mode for ingress-nginx annotations
 
-Our charts use **standard `Ingress` resources** for broad compatibility — no
-CRD migration required - except for a few nginx-specific annotations.
+Our charts use **standard `Ingress` resources** plus a few nginx-specific
+annotations. Switching to Traefik doesn't require helm chart changes.
 
 ---
 hideInToc: true
 ---
 
-# Installing Traefik
+## Installing Traefik
 
 ```sh {1-2|3-6|all}
 helm repo add traefik https://traefik.github.io/charts
@@ -299,7 +299,7 @@ backgroundSize: 15em
 hideInToc: true
 ---
 
-# What is KinD?
+## What is KinD?
 
 [KinD](https://kind.sigs.k8s.io/) is a tool for running Kubernetes clusters
 locally using just a Docker runtime.
@@ -313,7 +313,7 @@ Rancher Desktop, Docker Desktop Kubernetes).
 hideInToc: true
 ---
 
-# The old ingress-nginx on KinD
+## The old ingress-nginx on KinD
 
 Running ingress-nginx on KinD required a custom cluster configuration exposing
 host HTTP/HTTPS ports:
@@ -344,7 +344,9 @@ EOF
 hideInToc: true
 ---
 
-# Problems with the old approach
+## Problems with the old approach
+
+A few issues with this setup:
 
 * Ports 80 and 443 must be **free on the host**
 * Requires a **patched ingress-nginx manifest** for KinD
@@ -355,7 +357,7 @@ hideInToc: true
 hideInToc: true
 ---
 
-# cloud-provider-kind
+## cloud-provider-kind
 
 [cloud-provider-kind](https://github.com/kubernetes-sigs/cloud-provider-kind)
 is a plugin that brings **native `LoadBalancer` support** to KinD clusters.
@@ -374,7 +376,7 @@ sudo cloud-provider-kind
 hideInToc: true
 ---
 
-# Benefits of cloud-provider-kind
+## Benefits of cloud-provider-kind
 
 * No special KinD cluster config required
 * Works with any standard Ingress Controller
@@ -386,7 +388,7 @@ hideInToc: true
 hideInToc: true
 ---
 
-# New KinD setup
+## New KinD setup
 
 Four simple steps — no custom cluster config needed:
 
@@ -429,7 +431,7 @@ backgroundSize: 15em
 hideInToc: true
 ---
 
-# Traefik in Compose
+## Traefik in Compose
 
 While the Helm migration happened in March 2026, **Traefik was already the proxy
 in our Docker Compose bundles** for both Community and Enterprise since late
@@ -442,7 +444,7 @@ configuration patterns.
 hideInToc: true
 ---
 
-# How Traefik works with Compose
+## How Traefik works with Compose
 
 * No separate config file.
 * Routing is driven by **Docker labels** on each service.
@@ -462,7 +464,7 @@ services:
 hideInToc: true
 ---
 
-# Compose with Traefik: example
+## Compose with Traefik: example
 
 ```yaml {1-3|1-8|10-15|all}
 services:
@@ -486,7 +488,7 @@ services:
 hideInToc: true
 ---
 
-# Compose `extends` feature
+## Compose `extends` feature
 
 We now leverage Docker Compose
 [extends](https://docs.docker.com/compose/how-tos/multiple-compose-files/extends/)
@@ -516,7 +518,7 @@ layout: section
 hideInToc: true
 ---
 
-# ActiveMQ auth enabled by default
+## ActiveMQ auth enabled by default
 
 Starting with **ACS 26**, the `alfresco-activemq:6.2.x` image enables
 authentication by default. This applies to **both Compose and Helm**.
@@ -531,7 +533,7 @@ for backwards compatibility.
 hideInToc: true
 ---
 
-# Configuring ActiveMQ credentials
+## Configuring ActiveMQ credentials
 
 **On the broker** (`alfresco-activemq` service / chart):
 
