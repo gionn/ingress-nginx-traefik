@@ -33,6 +33,7 @@ hideInToc: true
 # About me
 
 * DevOps Engineer at Hyland
+* Open Source and tech enthusiast
 * Reenactor during the weekends
 * More about me on [gionn.net](https://gionn.net)
 
@@ -42,7 +43,7 @@ hideInToc: true
 
 # Ops readiness team
 
-My team ensures that Alfresco can be deployed and operated reliable in multiple
+My team ensures that Alfresco can be deployed and operated reliably in multiple
 environments. We focus on:
 
 * Helm charts and GitOps best practices
@@ -63,7 +64,7 @@ hideInToc: true
     component-level charts for more flexibility
   * [alfresco-dockerfiles-bakery](https://github.com/Alfresco/alfresco-dockerfiles-bakery):
     build your own Docker images with customizations
-* Classic deployment:
+* Classic deployments:
   * [alfresco-ansible](https://github.com/Alfresco/alfresco-ansible-deployment):
     Ansible playbooks for on-premises/VM deployments
 
@@ -110,7 +111,7 @@ Internet → LoadBalancer → Ingress Controller → Services → Pods
 hideInToc: true
 ---
 
-# ingress-nginx is retired
+# ingress-nginx has been retired
 
 The Kubernetes project officially announced the **retirement of ingress-nginx**
 in November 2025.
@@ -140,7 +141,7 @@ The `Gateway` API is also emerging as a more powerful and flexible alternative,
 but adoption is still in early stages.
 
 The key point is that **the deprecation only affects the ingress-nginx
-controller** — not the Ingress API itself - a lot of people are missing this
+controller** — not the Ingress API itself — a lot of people are missing this
 nuance.
 
 ---
@@ -315,7 +316,7 @@ hideInToc: true
 # The old ingress-nginx on KinD
 
 Running ingress-nginx on KinD required a custom cluster configuration exposing
-host http/s ports:
+host HTTP/HTTPS ports:
 
 <Transform :scale="0.6">
 ```shell {all|12-16}
@@ -393,7 +394,7 @@ Four simple steps — no custom cluster config needed:
 # 1. Create a plain KinD cluster
 kind create cluster
 
-# 2. Install and run cloud-provider-kind (keep running in background)
+# 2. Run cloud-provider-kind (keep running in background)
 sudo cloud-provider-kind
 
 # 3. Install Traefik (standard Helm install)
@@ -496,7 +497,7 @@ docker-compose/
 ├── commons/               ← shared base definitions (Traefik labels, …)
 ├── compose.yaml           ← Enterprise which extends commons
 ├── community-compose.yaml ← Community which extends commons
-├── 23.N-compose.yaml.     ← older supported versions
+├── 23.N-compose.yaml      ← older supported versions
 └── solr6-overrides.yaml   ← optional overrides for specific components
 ```
 
